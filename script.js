@@ -1,73 +1,64 @@
-var context;
-var gameobjects = [];
-var fps = 400;
-
-var octopus;
+var ballPosition = [100, 100];
+var ballVelocity = [1, 1];
+var leftPaddle = rightPaddle = 50;
+var score = [0, 0];
+var context, canvasDim;
 
 window.onload = function() {
-    context = document.getElementById("canvas").getContext("2d");
-    setInterval(update, 1000/fps);
-    octopus = new Sprite();
-    octopus.image.src = "squid.png";
-    gameobjects.push(octopus);
-};
+  context = document.getElementById("canvas").getContext("2d");
+  canvasDim = [context.canvas.width, context.canvas.height];
+  context.canvas.onmousemove = move;
+  context.canvas.addEventListener('touchmove', move, false);
+  setInterval(render, 1000/60);
+  setInterval(update, 1000/60);
+}
 
-Sprite = function(image, position, velocity, angle, angularvelocity ) {
-    this.image = new Image();
-    this.image.src = image ? image : "default.png";
-    this.position = position || [0, 0];
-    this.velocity = velocity || [0, 0];
-    this.angle = angle || 0;
-    this.angularvelocity = angularvelocity || 0;
-};
+//Tegneri
+function render() {
+  context.clearRect(0, 0, canvasDim[0], canvasDim[1]);
+  context.fillRect(ballPosition[0],ballPosition[1],10, 10);
+  context.fillRect(30, leftPaddle, 30, 100);
+  context.fillRect(canvasDim[0]-60, rightPaddle, 30, 100);
+}
 
-Sprite.prototype.render = function() {
-    context.save();
-    context.translate(this.position[0], this.position[1]);
-    context.rotate(this.angle);
-    context.drawImage(this.image, -this.image.width/2, -this.image.height/2);
-    context.restore();
-};
+//Spilleregler
+function update() {
+  /*collision with top or bottom: change ball direction
+  collision with left or right: left or right player scores
+  collision with a paddle: change ball direction
+  always: Move ball in the direction of its velocity
+  */
 
-add = function(a, b) { return zip(a, b).map(sum);};
+  if(ballPosition[1] < 0 || ballPosition[1] > canvasDim[1])
+    ballVelocity[1] = -ballVelocity[1];
+  if(ballPosition[0] < 60 &&
+     ballPosition[0] > 30 &&
+     ballPosition[1] < leftPaddle+100 && 
+     ballPosition[1] > leftPaddle) {
+     ballVelocity[0] = 1;
+  }
+  if(ballPosition[0] > canvasDim[0]-60 &&
+     ballPosition[0] < canvasDim[0]-30 &&
+     ballPosition[1] < rightPaddle+100 && 
+     ballPosition[1] > rightPaddle) {
+     ballVelocity[0] = -1;
+  }
+  if(ballPosition[0] < 0) goal(1);
+  if(ballPosition[0] > canvasDim[0]) goal(0);
+  for(var i=0; i<2; i++) {
+    ballPosition[i] += ballVelocity[i];
+  }
+  var sign = function(n) { return n >= 0 ? 1 : -1 }
+	leftPaddle += sign(ballPosition[1] - 50 - leftPaddle)*0.5;
+}
 
-sum = function(a) { return (a.length>0) ? a[0] + sum(a.slice(1)) : 0; };
+function move(evt) {
+  rightPaddle =  event.pageY - canvas.offsetTop - 50;
+}
 
-zip = function(a, b) { if (a.length<=0 || b.length<=0) return []; 
-		       return [[a[0], b[0]]].concat(zip(a.slice(1), b.slice(1))); };
+function goal(player) {
+  ballPosition = [100, 100];
+  score[player]++;
+}
 
-clear = function() {
-    context.fillStyle = 'rgb(255, 255, 255)';
-    context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-};
 
-update = function() {
-    clear();
-    for(i in gameobjects) {
-	gameobjects[i].position = add(gameobjects[i].position, 
-				      gameobjects[i].velocity);
-	gameobjects[i].angle += gameobjects[i].angularvelocity;
-	gameobjects[i].render();
-    }
-};
-
-window.onkeydown = function(evt) {
-    var keymap = {
-	37 : function() { octopus.angularvelocity = -0.1; },
-	38 : function() { octopus.velocity = add(octopus.velocity,
-						 [Math.cos(octopus.angle),
-						  Math.sin(octopus.angle)]); },
-	39 : function() { octopus.angularvelocity = 0.1 },
-	40 : function() { octopus.velocity = add(octopus.velocity,
-						 [-Math.cos(octopus.angle),
-						  -Math.sin(octopus.angle)]); } };
-    if(keymap[evt.which]) {
-	keymap[evt.which]();
-    }
-    return false;
-};
-
-window.onkeyup = function(evt) {
-    octopus.angularvelocity = 0;
-    return false;
-};
