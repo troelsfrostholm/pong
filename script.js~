@@ -1,0 +1,70 @@
+var context;
+var gameobjects = [];
+var fps = 400;
+
+var octopus;
+
+window.onload = function() {
+    context = document.getElementById("canvas").getContext("2d");
+    setInterval(update, 1000/fps);
+    octopus = new Sprite();
+    octopus.image.src = "squid.png";
+    gameobjects.push(octopus);
+};
+
+Sprite = function(image, position, velocity, angle, angularvelocity ) {
+    this.image = new Image();
+    this.image.src = image ? image : "default.png";
+    this.position = position || [0, 0];
+    this.velocity = velocity || [0, 0];
+    this.angle = angle || 0;
+    this.angularvelocity = angularvelocity || 0;
+};
+
+Sprite.prototype.render = function() {
+    context.save();
+    context.translate(this.position[0], this.position[1]);
+    context.rotate(this.angle);
+    context.drawImage(this.image, -this.image.width/2, -this.image.height/2);
+    context.restore();
+};
+
+add = function(a, b) {
+    result = [];
+    for(var i=0; i<a.length; i++) {
+	result[i] = a[i]+b[i];
+    }
+    return result;
+};
+
+clear = function() {
+    context.fillStyle = 'rgb(255, 255, 255)';
+    context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+};
+
+update = function() {
+    clear();
+    for(i in gameobjects) {
+	gameobjects[i].position = add(gameobjects[i].position, 
+				      gameobjects[i].velocity);
+	gameobjects[i].angle += gameobjects[i].angularvelocity;
+	gameobjects[i].render();
+    }
+};
+
+window.onkeydown = function(evt) {
+    var keymap = {
+	37 : function() { octopus.angularvelocity = -0.01; },
+	38 : function() { octopus.velocity = [Math.cos(octopus.angle),
+					      Math.sin(octopus.angle)]; },
+	39 : function() { octopus.angularvelocity = 0.01 },
+	40 : function() { octopus.velocity = [1, 0]; } };
+    if(keymap[evt.which]) {
+	keymap[evt.which]();
+    }
+};
+
+window.onkeyup = function(evt) {
+    octopus.velocity = [0,0];
+    octopus.angularvelocity = 0;
+};
